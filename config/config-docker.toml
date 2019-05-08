@@ -36,7 +36,7 @@ readonly = false
 #   goleveldb
 #   memory
 #
-db_name = "leveldb"
+db_name = "goleveldb"
 
 # If not set, use data_dir/"db_name"_data
 db_path = ""
