@@ -19,8 +19,8 @@ for docker_arch in amd64 arm32v6 arm64v8; do
 done
 
 for arch in amd64 arm32v6 arm64v8; do
-  docker build -f Dockerfile.${arch} -t arrkiin/ledisdb:${arch}-latest .
-  docker push arrkiin/ledisdb:${arch}-latest
+  docker build -f Dockerfile.${arch} -t ${repo}/${project}:${arch}-latest .
+  docker push ${repo}/${project}:${arch}-latest
 done
 
 docker manifest create --amend ${repo}/${project}:latest ${repo}/${project}:amd64-latest ${repo}/${project}:arm32v6-latest ${repo}/${project}:arm64v8-latest
