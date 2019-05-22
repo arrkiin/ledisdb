@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -23,11 +24,29 @@ var dbName = flag.String("db_name", "", "select a db to use, it will overwrite t
 var usePprof = flag.Bool("pprof", false, "enable pprof")
 var pprofPort = flag.Int("pprof_port", 6060, "pprof http port")
 var slaveof = flag.String("slaveof", "", "make the server a slave of another instance")
+var masterChk = flag.String("masterchk", "", "check for master to join as a slave")
 var readonly = flag.Bool("readonly", false, "set readonly mode, slave server is always readonly")
 var rpl = flag.Bool("rpl", false, "enable replication or not, slave server is always enabled")
 var rplSync = flag.Bool("rpl_sync", false, "enable sync replication or not")
 var ttlCheck = flag.Int("ttl_check", 0, "TTL check interval")
 var databases = flag.Int("databases", 0, "ledisdb maximum database number")
+
+func checkForMaster(url string) *string {
+	masterURL := ""
+	res, e := http.Get(url)
+	if e == nil {
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			return &masterURL
+		}
+		master, e := ioutil.ReadAll(res.Body)
+		if e == nil {
+			masterURL = string(master)
+			return &masterURL
+		}
+	}
+	return &masterURL
+}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -75,6 +94,16 @@ func main() {
 			cfg.Readonly = *readonly
 		case "-rpl_sync", "-rpl_sync=true", "-rpl_sync=false":
 			cfg.Replication.Sync = *rplSync
+		}
+	}
+
+	if len(*masterChk) > 0 {
+		fmt.Printf("check for master via %s", *masterChk)
+		slaveof = checkForMaster(*masterChk)
+		if len(*slaveof) > 0 {
+			fmt.Printf(" found %s\n", *slaveof)
+		} else {
+			fmt.Printf(" found nothing\n")
 		}
 	}
 
