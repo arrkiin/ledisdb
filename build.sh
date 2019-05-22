@@ -23,7 +23,7 @@ for arch in amd64 arm32v6 arm64v8; do
   docker push ${repo}/${project}:${arch}-latest
 done
 
-docker manifest create --amend ${repo}/${project}:latest ${repo}/${project}:amd64-latest ${repo}/${project}:arm32v6-latest ${repo}/${project}:arm64v8-latest
+docker manifest create ${repo}/${project}:latest ${repo}/${project}:amd64-latest ${repo}/${project}:arm32v6-latest ${repo}/${project}:arm64v8-latest
 docker manifest annotate ${repo}/${project}:latest ${repo}/${project}:arm32v6-latest --os linux --arch arm
 docker manifest annotate ${repo}/${project}:latest ${repo}/${project}:arm64v8-latest --os linux --arch arm64 --variant armv8
-docker manifest push ${repo}/${project}:latest
+docker manifest push --purge ${repo}/${project}:latest

@@ -15,6 +15,9 @@ RUN mkdir -p /root/dist ${GOPATH} \
     && cd src/github.com/siddontang \
     && git clone https://github.com/siddontang/ledisdb \
     && cd ledisdb \
+    && git remote add fork https://github.com/arrkiin/ledisdb \
+    && git fetch fork \
+    && git checkout fork/fork \
     && go get -d ./... \
     && GOOS=linux GOARCH=__BUILD_ARCH__ go build -i -a -installsuffix cgo -ldflags="-w -s" -o /build/bin/ledis-server cmd/ledis-server/* \
     && GOOS=linux GOARCH=__BUILD_ARCH__ go build -i -a -installsuffix cgo -ldflags="-w -s" -o /build/bin/ledis-cli cmd/ledis-cli/* \
@@ -29,7 +32,10 @@ RUN set -ex; \
     wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-__GOSU_ARCH__"; \
     wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-__GOSU_ARCH__.asc"; \
     export GNUPGHOME="$(mktemp -d)"; \
-    gpg --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
+    for server in ha.pool.sks-keyservers.net hkp://p80.pool.sks-keyservers.net:80; \
+    do \
+    gpg --keyserver "$server" --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 && break || echo "Trying new server..."; \
+    done; \
     gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
     chmod +x /usr/local/bin/gosu
 
