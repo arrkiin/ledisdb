@@ -52,7 +52,7 @@ ADD config/config-docker.toml /config.toml
 COPY --from=builder /build/bin/ledis-* /bin/
 COPY --from=builder /usr/local/bin/gosu /bin/
 
-RUN apk --no-cache add curl && \
+RUN apk --no-cache add curl jq && \
     addgroup -S ledis && \
     adduser -S -G ledis ledis && \
     mkdir /datastore && \
