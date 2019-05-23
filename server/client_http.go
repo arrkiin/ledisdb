@@ -171,6 +171,10 @@ func (w *httpWriter) convertArray(lst []interface{}) []interface{} {
 		case []interface{}:
 			w.convertArray(v.([]interface{}))
 		case [][]byte:
+			lst[i] = make([]string, len(v.([][]byte)))
+			for j, w := range v.([][]byte) {
+				lst[i].([]string)[j] = string(w)
+			}
 		case []byte:
 			lst[i] = string(v.([]byte))
 		case nil:
