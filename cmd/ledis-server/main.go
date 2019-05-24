@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
@@ -24,28 +25,36 @@ var dbName = flag.String("db_name", "", "select a db to use, it will overwrite t
 var usePprof = flag.Bool("pprof", false, "enable pprof")
 var pprofPort = flag.Int("pprof_port", 6060, "pprof http port")
 var slaveof = flag.String("slaveof", "", "make the server a slave of another instance")
-var masterChk = flag.String("masterchk", "", "check for master to join as a slave")
+var promoAddr = flag.String("promo_addr", "", "address to promote to redis-failover service")
+var failoverURL = flag.String("failover_url", "", "redis-failover service url like http://localhost/master")
 var readonly = flag.Bool("readonly", false, "set readonly mode, slave server is always readonly")
 var rpl = flag.Bool("rpl", false, "enable replication or not, slave server is always enabled")
 var rplSync = flag.Bool("rpl_sync", false, "enable sync replication or not")
 var ttlCheck = flag.Int("ttl_check", 0, "TTL check interval")
 var databases = flag.Int("databases", 0, "ledisdb maximum database number")
 
-func checkForMaster(url string) *string {
-	masterURL := ""
-	res, e := http.Get(url)
-	if e == nil {
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			return &masterURL
-		}
-		master, e := ioutil.ReadAll(res.Body)
+func handleFailover(serviceURL, addr string) *string {
+	// In case of failover handling we try forever to ge a proper master
+	// or set ourself as master
+	for {
+		masterURL := ""
+		res, e := http.PostForm(serviceURL, url.Values{
+			"masters": {addr},
+			"onempty": {"X"},
+		})
+		fmt.Printf("%+v - %+v", res, e)
 		if e == nil {
-			masterURL = string(master)
-			return &masterURL
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusOK {
+				continue
+			}
+			master, e := ioutil.ReadAll(res.Body)
+			if e == nil {
+				masterURL = string(master)
+				return &masterURL
+			}
 		}
 	}
-	return &masterURL
 }
 
 func main() {
@@ -97,9 +106,9 @@ func main() {
 		}
 	}
 
-	if len(*masterChk) > 0 {
-		fmt.Printf("check for master via %s", *masterChk)
-		slaveof = checkForMaster(*masterChk)
+	if len(*failoverURL) > 0 && len(*promoAddr) > 0 {
+		fmt.Printf("check for master via %s", *failoverURL)
+		slaveof = handleFailover(*failoverURL, *promoAddr)
 		if len(*slaveof) > 0 {
 			fmt.Printf(" found %s\n", *slaveof)
 		} else {
