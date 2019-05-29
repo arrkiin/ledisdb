@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/siddontang/ledisdb/config"
 	"github.com/siddontang/ledisdb/server"
@@ -42,10 +43,10 @@ func handleFailover(serviceURL, addr string) *string {
 			"masters": {addr},
 			"onempty": {"X"},
 		})
-		fmt.Printf("%+v - %+v", res, e)
 		if e == nil {
 			defer res.Body.Close()
 			if res.StatusCode != http.StatusOK {
+				time.Sleep(2 * time.Second)
 				continue
 			}
 			master, e := ioutil.ReadAll(res.Body)
@@ -54,6 +55,7 @@ func handleFailover(serviceURL, addr string) *string {
 				return &masterURL
 			}
 		}
+		time.Sleep(2 * time.Second)
 	}
 }
 

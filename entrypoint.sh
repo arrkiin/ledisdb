@@ -11,7 +11,7 @@ fi
 if [ "$1" = 'ledis-server' -a "$(id -u)" = '0' ]; then
 	chown -R ledis /datastore
     chown ledis:ledis /bin/ledis-*
-	exec gosu ledis "$0" "$@"
+	exec su-exec ledis "$0" "$@"
 fi
 
 exec "$@"

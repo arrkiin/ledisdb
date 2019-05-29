@@ -3,8 +3,7 @@ FROM golang:1.9-alpine3.6 as builder
 
 # Setup the Environment
 ENV GOPATH=/root/go \
-    PATH=${PATH}:/usr/local/go/bin:/root/go/bin \
-    GOSU_VERSION=1.11
+    PATH=${PATH}:/usr/local/go/bin:/root/go/bin
 
 RUN apk add --no-cache git bash gcc alpine-sdk build-base wget gnupg
 
@@ -26,20 +25,6 @@ RUN mkdir -p /root/dist ${GOPATH} \
     && GOOS=linux GOARCH=__BUILD_ARCH__ go build -i -a -installsuffix cgo -ldflags="-w -s" -o /build/bin/ledis-load cmd/ledis-load/* \
     && GOOS=linux GOARCH=__BUILD_ARCH__ go build -i -a -installsuffix cgo -ldflags="-w -s" -o /build/bin/ledis-repair cmd/ledis-repair/*
 
-# grab gosu for easy step-down from root
-# https://github.com/tianon/gosu/releases
-RUN set -ex; \
-    wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-__GOSU_ARCH__"; \
-    wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-__GOSU_ARCH__.asc"; \
-    export GNUPGHOME="$(mktemp -d)"; \
-    for server in ha.pool.sks-keyservers.net hkp://p80.pool.sks-keyservers.net:80; \
-    do \
-    gpg --keyserver "$server" --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 && break || echo "Trying new server..."; \
-    done; \
-    gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
-    chmod +x /usr/local/bin/gosu
-
-
 # done building - now create a tiny image with a statically linked Ledis
 FROM __BASEIMAGE_ARCH__/alpine:3.6
 
@@ -50,15 +35,13 @@ ENV GOPATH=/root/go \
 ADD config/config-docker.toml /config.toml
 
 COPY --from=builder /build/bin/ledis-* /bin/
-COPY --from=builder /usr/local/bin/gosu /bin/
 
-RUN apk --no-cache add curl jq && \
+RUN apk --no-cache add su-exec && \
     addgroup -S ledis && \
     adduser -S -G ledis ledis && \
     mkdir /datastore && \
     chown ledis:ledis /datastore && \
-    chmod 444 /config.toml && \
-    gosu nobody true
+    chmod 444 /config.toml
 
 VOLUME /datastore
 
