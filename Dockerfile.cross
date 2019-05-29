@@ -7,16 +7,18 @@ ENV GOPATH=/root/go \
 
 RUN apk add --no-cache git bash gcc alpine-sdk build-base wget gnupg
 
+ADD . $GOPATH/src/github.com/siddontang/ledisdb
+
 #build LedisDB
 RUN mkdir -p /root/dist ${GOPATH} \
     && cd ${GOPATH} \
     && mkdir -p src/github.com/siddontang \
     && cd src/github.com/siddontang \
-    && git clone https://github.com/siddontang/ledisdb \
+    # && git clone https://github.com/siddontang/ledisdb \
     && cd ledisdb \
-    && git remote add fork https://github.com/arrkiin/ledisdb \
-    && git fetch fork \
-    && git checkout fork/fork \
+    # && git remote add fork https://github.com/arrkiin/ledisdb \
+    # && git fetch fork \
+    # && git checkout fork/fork \
     && go get -d ./... \
     && GOOS=linux GOARCH=__BUILD_ARCH__ go build -i -a -installsuffix cgo -ldflags="-w -s" -o /build/bin/ledis-server cmd/ledis-server/* \
     && GOOS=linux GOARCH=__BUILD_ARCH__ go build -i -a -installsuffix cgo -ldflags="-w -s" -o /build/bin/ledis-cli cmd/ledis-cli/* \

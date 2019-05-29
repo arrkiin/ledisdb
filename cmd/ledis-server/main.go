@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
@@ -34,11 +36,34 @@ var rplSync = flag.Bool("rpl_sync", false, "enable sync replication or not")
 var ttlCheck = flag.Int("ttl_check", 0, "TTL check interval")
 var databases = flag.Int("databases", 0, "ledisdb maximum database number")
 
-func handleFailover(serviceURL, addr string) *string {
+// GetOutboundIP outbound ip of this machine
+func GetOutboundIP(serviceURL string) string {
+	cmps := strings.Split(serviceURL, "/")
+	if len(cmps) < 4 {
+		return ""
+	}
+	conn, err := net.Dial("tcp", cmps[2])
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.TCPAddr)
+
+	return localAddr.IP.String()
+}
+
+func handleFailover(serviceURL string, cfg *config.Config) (*string, error) {
 	// In case of failover handling we try forever to ge a proper master
 	// or set ourself as master
+	masterURL := ""
+	addr := GetOutboundIP(serviceURL)
+	if len(addr) > 0 {
+		addr = fmt.Sprintf("%s:%s", addr, strings.Split(cfg.Addr, ":")[1])
+	} else {
+		return &masterURL, errors.New("No output IP determined")
+	}
 	for {
-		masterURL := ""
 		res, e := http.PostForm(serviceURL, url.Values{
 			"masters": {addr},
 			"onempty": {"X"},
@@ -46,15 +71,17 @@ func handleFailover(serviceURL, addr string) *string {
 		if e == nil {
 			defer res.Body.Close()
 			if res.StatusCode != http.StatusOK {
+				fmt.Printf(".")
 				time.Sleep(2 * time.Second)
 				continue
 			}
 			master, e := ioutil.ReadAll(res.Body)
 			if e == nil {
 				masterURL = string(master)
-				return &masterURL
+				return &masterURL, nil
 			}
 		}
+		fmt.Printf(".")
 		time.Sleep(2 * time.Second)
 	}
 }
@@ -108,9 +135,12 @@ func main() {
 		}
 	}
 
-	if len(*failoverURL) > 0 && len(*promoAddr) > 0 {
+	if len(*failoverURL) > 0 {
 		fmt.Printf("check for master via %s", *failoverURL)
-		slaveof = handleFailover(*failoverURL, *promoAddr)
+		slaveof, err = handleFailover(*failoverURL, cfg)
+		if err != nil {
+			panic(err)
+		}
 		if len(*slaveof) > 0 {
 			fmt.Printf(" found %s\n", *slaveof)
 		} else {

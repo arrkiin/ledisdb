@@ -19,7 +19,7 @@ for docker_arch in amd64 arm32v6 arm64v8; do
 done
 
 for arch in amd64 arm32v6 arm64v8; do
-  docker build -f Dockerfile.${arch} -t ${repo}/${project}:${arch}-latest .
+  docker build --no-cache -f Dockerfile.${arch} -t ${repo}/${project}:${arch}-latest .
   docker push ${repo}/${project}:${arch}-latest
 done
 
