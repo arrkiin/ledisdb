@@ -28,7 +28,6 @@ var dbName = flag.String("db_name", "", "select a db to use, it will overwrite t
 var usePprof = flag.Bool("pprof", false, "enable pprof")
 var pprofPort = flag.Int("pprof_port", 6060, "pprof http port")
 var slaveof = flag.String("slaveof", "", "make the server a slave of another instance")
-var promoAddr = flag.String("promo_addr", "", "address to promote to redis-failover service")
 var failoverURL = flag.String("failover_url", "", "redis-failover service url like http://localhost/master")
 var readonly = flag.Bool("readonly", false, "set readonly mode, slave server is always readonly")
 var rpl = flag.Bool("rpl", false, "enable replication or not, slave server is always enabled")
